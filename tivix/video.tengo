@@ -17,4 +17,4 @@ b[3] = import("base64").decode(b[3])
 
 b = txt.replace(txt.replace(txt.replace(b[3], "{v3}", b[2].text, 1), "{v2}", b[1].text, 1), "{v1}", b[0].text, 1)
 
-srv.write("{\"response\":{\"status\":200,\"data\":{\"url\":\"http://" + srv.host + "/proxy.m3u?header=Referer%3A" + srv.uri_encode(url) + "&link=" + srv.uri_encode(b) +"\"}}}")
+srv.write("{\"response\":{\"status\":200,\"data\":{\"url\":\"http://" + srv.host + "/proxy.m3u8?header=Referer%3A" + srv.uri_encode(url) + "&link=" + srv.uri_encode(b) +"\"}}}")
