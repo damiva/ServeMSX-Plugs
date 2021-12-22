@@ -1,0 +1,6 @@
+s := import("server")
+c := s.memory()
+if !is_map(c) {c = {}}
+c[s.read("id")] = s.read("link")
+s.memory(c)
+s.write("{\"response\":{\"status\":200,\"data\":{\"action\":\"[info:Выбрана категория: ", s.read("name"), "|back|reload:content]\"}}}")

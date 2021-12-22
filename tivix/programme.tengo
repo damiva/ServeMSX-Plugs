@@ -1,0 +1,67 @@
+srv := import("server")
+jsn := import("json")
+tms := import("times")
+txt := import("text")
+now := tms.now()
+cid := srv.read("cid")
+epg := []
+nrs := {now: [now, "..."], nxt: [tms.add(now, tms.hour), "..."], cur: -1}
+// get and prepare programme:
+if cid != "" {
+    if epg = srv.request("https://s.programma.space/channels/tivix/program/" + txt.split_n(cid, "-", 2)[0] + "/today/"); is_error(epg) {
+        srv.log_err(epg)
+    } else if epg.status != 200 {
+        //srv.log_err("Programma returned:", epg.status)
+    } else if epg = jsn.decode(epg.body); is_error(epg) {
+        srv.log_err(epg)
+    } else if is_array(epg) {
+        a := false
+        for i := 0; i < len(epg); i++ {
+            epg[i].start_at = tms.to_local(tms.parse(tms.format_rfc3339, txt.replace(epg[i].start_at, " ", "T", 1) + "+00:00"))
+            if !a {
+                if a = tms.after(epg[i].start_at, now); a {
+                    nrs.nxt = [epg[i].start_at, epg[i].name]
+                    if i > 0 {
+                        epg[i-1] = "{col:msx-yellow}" + epg[i-1] + "{col:msx-white}"
+                        nrs.cur = i - 1
+                    }
+                } else {
+                    nrs.now = [epg[i].start_at, epg[i].name]
+                }
+            }
+            epg[i] = tms.time_format(epg[i].start_at, "15:04") + "{tb}" + epg[i].name
+        }
+    }
+}
+// prepare the answer:
+if fn := srv.read("now") != ""; !is_array(epg) || len(epg) < 1 {
+    epg = fn ? {titleHeader: "Программа недоступна!"} : undefined
+    cid = fn ? ("update:content:" + cid) : "player:label:duration:{ico:sensors}"
+} else if fn {
+    epg = {live: {
+        type: "schedule", from: tms.time_unix(nrs.now[0]) * 1000, to: tms.time_unix(nrs.nxt[0]) * 1000,
+        titleHeader: "{ico:play-arrow}{col:msx-white}{progress:time:hh:mm} " + nrs.now[1],
+        titleFooter: "{ico:skip-next}{countdown:time:hh:mm} " + nrs.nxt[1],
+        over: {action: "execute:service:fetch:" + srv.base_url + "epg.tengo?now=true&cid=" + cid}
+    }}
+    cid = "update:content:" + cid
+} else {
+    if nrs.cur < 0 {
+        epg = append(["{col:msx-yellow}...{col:msx-white}"], epg...)
+    } else if l := len(epg) - 10; l > 0 && nrs.cur > 0 {
+        epg = epg[nrs.cur < l ? nrs.cur : l:]
+    }
+    tuf := tms.time_unix(nrs.now[0])
+    tut := tms.time_unix(nrs.nxt[0])
+    epg = {actions: [
+        {action: "trigger:player:execute:service:fetch:" + srv.base_url + "progress.tengo?b=" + tuf + "&e=" + tut + "&cid=" + cid},
+        {action: "player:info:text:" + txt.join(epg, "{br}")},
+        {action: "player:label:position:{VALUE}{tb}{col:msx-white}" + nrs.now[1]},
+        //{action: "player:label:extension:{tb}{ico:access-time}{col:msx-white}" + tms.time_format(now, "15:04")},
+        {action: "player:video:position:" + string(tms.time_unix(now) - tuf)},
+        {action: "player:video:duration:" + string(tut - tuf)}
+    ]}
+    cid = "data"
+}
+// answer:
+srv.write(jsn.encode({response: {status: 200, data: {action: cid, data: epg}}}))

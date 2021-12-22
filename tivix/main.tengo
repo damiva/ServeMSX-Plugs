@@ -1,0 +1,60 @@
+url := "http://tv.tivix.co/"
+srv := import("server")
+txt := import("text")
+jsn := import("json")
+vid := "video:resolve:" + srv.base_url + "video.tengo?cid="
+cat := srv.memory() || {}
+cat = cat[srv.read("id")] || ""
+
+// get the page:
+r := srv.request(url + cat)
+panic(is_error(r) ? r : r.status != 200 ? r.status : undefined)
+
+// parse categories:
+c := [{type: "space"}]
+for m in txt.re_find("(?s)class=\"menuuuuuu\">(.+?)</div>", r.body, 3) {
+    for i in txt.re_find("(?s).+?href=\"/(.*?)\"(.+?)>(.+?)<", m[1].text, -1) {
+        cc := {label: i[3].text, action: "execute:fetch:" + srv.base_url + "set.tengo?id={ID}&link="+ i[1].text + "&name=" + srv.uri_encode(i[3].text)}
+        if len(i[2].text) > 3 {
+            cc.enable = false
+            cat = (i[1].text == "" ? "" : "{col:msx-yellow}") + i[3].text
+        }
+        if i[1].text == "" { cc.offset = "-4,0,4,0" }
+        c = append(c, cc)
+    }
+}
+
+// parse channels:
+if r = txt.re_find("(?s)class=\"all_tv\".+?<a.+?href=\".+?//.+?/(.+?).html\".+?title=\"(.+?)\".+?src=\"/(.+?)\"", r.body, -1); r { 
+    for i := 0; i < len(r); i++ {
+        r[i] = {id: r[i][1].text, headline: r[i][2].text, playerLabel: r[i][2].text, image: url + r[i][3].text, action: vid + r[i][1].text}
+    }
+}
+
+// msx answer:
+srv.write(jsn.encode({
+    type: "list", headline: "Tivix",
+    compress: true, items: r,
+    extension: "{ico:filter-list} " + cat + "{tb}{ico:msx-white-soft:access-time}{txt:msx-white:now:time:hh:mm}",
+    header: {items: [{type: "control", icon:"filter-list", label: "Категория:", extensionLabel: cat, layout: "5,0,6,1", action: "panel:data", data: {
+        type: "list", items: c, template: {type: "button", layout: "0,0,4,1"}
+    }}]},
+    template: {
+        layout: "0,0,8,2", truncation: "titleHeader|titleFooter",
+        imageWidth: 1, imageFiller: "smart", 
+        progress: -1, progressColor: "msx-white", titleHeader: "", titleFooter: "",
+        live: {type: "setup", action: "execute:service:fetch:" + srv.base_url + "programme.tengo?cid={context:id}&now=true"},
+        properties:{
+            "trigger:load": "execute:service:fetch:" + srv.base_url + "programme.tengo?cid={context:id}",
+            "trigger:stop": "quiet",
+            "control:type": "extended",
+            "progress:type": "time:hh:mm",
+            "label:extension": "{tb}{ico:access-time} {txt:msx-white:now:time:hh:mm}",
+            "button:play_pause:enable": "false",
+            "button:speed:enable": "false",
+            "button:forward:enable": "false",
+            "button:rewind:enable": "false",
+            "button:restart:enable": "false"
+        }
+    }
+}))
