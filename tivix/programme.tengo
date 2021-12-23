@@ -42,7 +42,7 @@ if fn := srv.read("now") != ""; !is_array(epg) || len(epg) < 1 {
         type: "schedule", from: tms.time_unix(nrs.now[0]) * 1000, to: tms.time_unix(nrs.nxt[0]) * 1000,
         titleHeader: "{ico:play-arrow}{col:msx-white}{progress:time:hh:mm} " + nrs.now[1],
         titleFooter: "{ico:skip-next}{countdown:time:hh:mm} " + nrs.nxt[1],
-        over: {action: "execute:service:fetch:" + srv.base_url + "epg.tengo?now=true&cid=" + cid}
+        over: {action: "execute:service:fetch:" + srv.base_url + "programme.tengo?now=true&cid=" + cid}
     }}
     cid = "update:content:" + cid
 } else {
@@ -64,4 +64,6 @@ if fn := srv.read("now") != ""; !is_array(epg) || len(epg) < 1 {
     cid = "data"
 }
 // answer:
+srv.log_inf(cid)
+srv.log_inf(epg)
 srv.write(jsn.encode({response: {status: 200, data: {action: cid, data: epg}}}))

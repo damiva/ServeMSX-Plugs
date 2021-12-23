@@ -2,7 +2,7 @@ url := "http://tv.tivix.co/"
 srv := import("server")
 txt := import("text")
 jsn := import("json")
-vid := "video:resolve:" + srv.base_url + "video.tengo?cid="
+vid := "video:resolve:" + srv.base_url + "video.tengo?player={PLAYER}&cid="
 cat := srv.memory() || {}
 cat = cat[srv.read("id")] || ""
 
@@ -54,7 +54,8 @@ srv.write(jsn.encode({
             "button:speed:enable": "false",
             "button:forward:enable": "false",
             "button:rewind:enable": "false",
-            "button:restart:enable": "false"
+            "button:restart:enable": "false",
+            "tizen:display:mode": "PLAYER_DISPLAY_MODE_FULL_SCREEN"
         }
     }
 }))
