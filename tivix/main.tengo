@@ -46,7 +46,6 @@ srv.write(jsn.encode({
         live: {type: "setup", action: "execute:service:fetch:" + srv.base_url + "programme.tengo?cid={context:id}&now=true"},
         properties:{
             "trigger:load": "execute:service:fetch:" + srv.base_url + "programme.tengo?cid={context:id}",
-            "trigger:stop": "quiet",
             "control:type": "extended",
             "progress:type": "time:hh:mm",
             "label:extension": "{tb}{ico:access-time} {txt:msx-white:now:time:hh:mm}",
