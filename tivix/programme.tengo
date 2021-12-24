@@ -64,6 +64,4 @@ if fn := srv.read("now") != ""; !is_array(epg) || len(epg) < 1 {
     cid = "data"
 }
 // answer:
-srv.log_inf(cid)
-srv.log_inf(epg)
 srv.write(jsn.encode({response: {status: 200, data: {action: cid, data: epg}}}))
