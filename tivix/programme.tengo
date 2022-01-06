@@ -34,14 +34,14 @@ if cid != "" {
     }
 }
 // prepare the answer:
-if fn := srv.read("now") != ""; !is_array(epg) || len(epg) < 1 {
+if fn := srv.read("now"); !is_array(epg) || len(epg) < 1 {
     epg = fn ? {titleHeader: "Программа недоступна!"} : undefined
     cid = fn ? ("update:content:" + cid) : "player:label:duration:{ico:sensors}"
 } else if fn {
     epg = {live: {
         type: "schedule", from: tms.time_unix(nrs.now[0]) * 1000, to: tms.time_unix(nrs.nxt[0]) * 1000,
-        titleHeader: "{ico:play-arrow}{col:msx-white}{progress:time:hh:mm} " + nrs.now[1],
-        titleFooter: "{ico:skip-next}{countdown:time:hh:mm} " + nrs.nxt[1],
+        titleHeader: "{ico:add}{col:msx-white}{progress:time:hh:mm} " + nrs.now[1],
+        titleFooter: "{ico:remove}{countdown:time:hh:mm} " + nrs.nxt[1],
         over: {action: "execute:service:fetch:" + srv.base_url + "programme.tengo?now=true&cid=" + cid}
     }}
     cid = "update:content:" + cid
@@ -57,7 +57,7 @@ if fn := srv.read("now") != ""; !is_array(epg) || len(epg) < 1 {
         {action: "trigger:player:execute:service:fetch:" + srv.base_url + "progress.tengo?b=" + tuf + "&e=" + tut + "&cid=" + cid},
         {action: "player:info:text:" + txt.join(epg, "{br}")},
         {action: "player:label:position:{VALUE}{tb}{col:msx-white}" + nrs.now[1]},
-        //{action: "player:label:extension:{tb}{ico:access-time}{col:msx-white}" + tms.time_format(now, "15:04")},
+        {action: "player:label:duration:{VALUE}"},
         {action: "player:video:position:" + string(tms.time_unix(now) - tuf)},
         {action: "player:video:duration:" + string(tut - tuf)}
     ]}
