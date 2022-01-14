@@ -1,6 +1,33 @@
 s := import("server")
-c := s.memory()
-if !is_map(c) {c = {}}
-c[s.read("id")] = s.read("link")
-s.memory(c)
-s.write("{\"response\":{\"status\":200,\"data\":{\"action\":\"[info:Выбрана категория: ", s.read("name"), "|back|reload:content]\"}}}")
+j := import("json")
+a := "reload:content"
+if r := s.read("cat"); is_string(r) {
+    s.memory(r)
+    a = "[back|reload:content]" 
+} else if c := s.read("cid"); c {
+    ch := false
+    if r = s.file("favs.json"); r {
+        panic(is_error(r) ? r : undefined)
+        r = j.decode(r)
+    }
+    r = is_array(r) ? r : []
+    l := len(r)
+    for i := 0; i < l; i++ {
+        if r[i].id == c {
+            splice(r, i, 1)
+            i = l
+            ch = true
+        }
+    }
+    if t := s.read("ttl"); t {
+        r = append(r, {id: c, headline: t, image: s.read("img")})
+        ch = true
+        a = "success:" + t + " добавлен в {col:msx-yellow}избранные"
+    }
+    if ch {
+        r = j.encode(r)
+        panic(is_error(r) ? r : undefined)
+        s.file("favs.json", r)
+    }
+}
+s.write("{\"response\":{\"status\":200,\"data\":{\"action\":\"" + a + "\"}}}")

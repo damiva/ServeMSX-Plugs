@@ -1,0 +1,15 @@
+srv := import("server")
+jsn := import("json")
+
+panic(srv.method != "POST" ? 400 : undefined)
+u := srv.read()
+u = jsn.decode(u)
+panic(is_error(u) ? u : undefined)
+u = u.data || ""
+panic(u == "" ? 400 : undefined)
+
+u = srv.request(u)
+panic(is_error(u) ? u : u.status == 200 ? undefined : u.status)
+u = import("text").re_find("(?s)\"<a.+?href='(.+?)'", u.body, 1)[0][1].text
+
+srv.write("{\"response\":{\"status\":200,\"data\":{\"action\":\"content:http://" + srv.host + "/msx/torr?link=" + srv.encode_uri(u) + "\"}}}")
