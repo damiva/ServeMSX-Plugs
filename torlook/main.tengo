@@ -2,64 +2,50 @@ srv := import("server")
 jsn := import("json")
 txt := import("text")
 url := "https://torlook.info/"
-act := "content:" + srv.base_url + "?find="
+act := (srv.read("v") > "0.1.142" ? "replace:content:torlook:" : "content:") + srv.base_url + "?find="
 its := []
-stg := srv.memory() || {so: "seeders", fs: false, ru: srv.dictionary() == "Русский"}
+stg := srv.memory()
+stg = is_array(stg) && len(stg) == 2 ? stg : ["seeders", false]
 get := func(s, p) {
     r := srv.request(
-        url + (s == "" ? "movietop" : ("?cinema=on&s=" + srv.encode_uri(s) + "&sort=" + stg.so + (stg.fs ? "&forced=on" : ""))),
+        url + (s  ? ("?cinema=on&s=" + srv.encode_uri(s) + "&sort=" + stg[0] + (stg[1] ? "&forced=on" : "")) : "movietop"),
         {header: {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36"}}
     )
-    panic(is_error(r) ? r : r.status == 200 ? undefined : r.status)
-    return txt.re_find(p, r.body, -1)
+    return is_error(r) ? string(r) : r.status == 200 ? txt.re_find(p, r.body, -1) : r.status == 404 ? "Ничего не найдено!" : r.status > 499 ? (url + " не доступен!") : string(r.status)
 }
-fnd := srv.read("find") || ""
-if fnd == "" {
-    for i in get("", "(?s)webResult.+?item.+?<p>.+?href=\"/(.+?)\">(.+?)<.+?href=\"(.+?)\">(.+?)<.+?torstat.+?<span.+?>(.+?)<") {
-        r := "-"
-        x := stg.ru ? 0 : 2
-        if f := float(i[5].text, 0); f > 6.6 {
-            r = "{col:limegreen}" + string(f)
-        } else if f > 3.3 {
-            r = "{col:yellow}" + string(f)
-        } else if f > 0 {
-            r = "{col:salmon}" + string(f)
-        }
-        its = append(its, {label: i[2 + x].text, extensionLabel: r, icon: "search", action: act + i[1 + x].text})
-    }
-} else {
-    for i in get(fnd, "(?s)webResult.+?item.+?<a.+?>(.+?)</a>.+?<img.+?src=\"/(.+?)\".+?<a.+?>(.+?)<.+?class=\"size\">(.+?)<.+?class=\"date\">(.+?)<.+?class=\"arrow-up\".+?>(.+?)<.+?data-src=\"(.+?)\"") {
-        its = append(its, {
-            headline: "{col:msx-white}" + txt.re_replace("<.+?>", i[1].text, ""),
+fnd := srv.read("find")
+rtn := ""
+if fnd {
+    if rtn = get(fnd, "(?s)webResult.+?item.+?<a.+?>(.+?)</a>.+?<img.+?src=\"/(.+?)\".+?<a.+?>(.+?)<.+?class=\"size\">(.+?)<.+?class=\"date\">(.+?)<.+?class=\"arrow-up\".+?>(.+?)<.+?data-src=\"(.+?)\""); is_array(rtn) {
+        for i in rtn { its = append(its, {
+            headline: txt.re_replace("<.+?>", i[1].text, ""),
             titleFooter: txt.join([i[3].text, txt.replace(i[4].text, "&nbsp;", " ", 1), "{ico:calendar-today} " + i[5].text, "{ico:arrow-upward} " + i[6].text], "{tb}{txt:msx-white:|}{tb}"),
             data: url + srv.encode_uri(i[7].text, true)
-        })
+        })}
     }
+} else if rtn = get("", "(?s)webResult.+?item.+?<p>.+?href=\"/(.+?)\">(.+?)<.+?torstat.+?<span.+?>(.+?)<"); is_array(rtn) {
+    for i in rtn {its = append(its, {label: i[2].text, extensionLabel: i[5].text, icon: "search", action: act + i[1].text})}
 }
-t := stg.ru ? [
-    "Поиск торрентов", "ТОП 50", "Kinopoisk", "ru.svg", "по сидам", "по размеру", "по дате", "форсировать"
-] : [
-    "Torrents search", "TOP 50", "Kinopoisk", "gb.svg", "by seeders", "by size", "by date", "forced"
-]
-u := "execute:fetch:" + srv.base_url + "set.tengo?"
-lng := stg.ru ? "{txt:msx-white-soft:EN} {ico:toggle-on} RU" : "EN {ico:toggle-off} {txt:msx-white-soft:RU}"
+if len(its) == 0 {
+    its = append(its, {icon: "msx-yellow:warning", label: is_string(rtn) ? rtn : "Пусто!", extensionIcon: "msx-white:refresh", action: "reload:content"})
+    rtn = false
+} else {
+    its[0].focus = fnd ? true : false
+    rtn = true
+}
 srv.write(jsn.encode({
     type: "list", items: its, flag: "torlook", headline: "Torlook", compress: true,
-    extension: fnd == "" ? ("{col:msx-white}" + t[1] + " (" +t[2] + ")") : ("{ico:search} {col:msx-white}" + fnd), 
-    template: {type: "control", layout: "0,0,16,1", truncation: "headline", action: "execute:service:" + srv.base_url + "magnet.tengo", offset: "0,0,0,0.2"},
+    extension: fnd ? ("{ico:search} {col:msx-white}" + fnd) : "{col:msx-white}ТОП 50 (кинопоиск)", 
+    template: {type: "control", layout: "0,0,16," + (rtn && fnd ? "2" : "1"), action: "execute:service:" + srv.base_url + "magnet.tengo"},
     header: {compress: true, items: [
-        {type: "button", image: srv.base_url + "kp.svg", label: t[1] + "{br}{br}{br}" + t[2], action: act, enable: fnd != "", layout: "0,0,2,2", imagePreload: true},
-        {type: "space", layout: "1,0,12,2", offset: "1,0,0,0", color: "msx-glass"},
+        {type: "space", layout: "1,0,15,1", offset: "-1,0,1,0", color: "msx-black"},
+        {type: "button", label: "ТОП 50", action: act, layout: "0,0,2,1"},
         {
             type: "control", icon: "search", extensionIcon: "keyboard", layout: "2,0,12,1",
-            label: fnd != "" ? fnd : ("{col:msx-white-soft}" + t[0]),
+            label: fnd || "{col:msx-white-soft}Поиск торрентов", focus: fnd ? false : true,
             action: "execute:http://" + srv.host + "/msx/input",
-            data: {action: "[back|" + act + "{INPUT}]", headline: t[0], value: fnd, extension: "{ico:search}"}
+            data: {action: "[back|" + act + "{INPUT}]", headline: "Поиск торрентов", value: fnd, extension: "{ico:search}"}
         },
-        {type: "button", image: srv.base_url + t[3], label: lng, action: u + "ru=" + string(!stg.ru), layout: "14,0,2,2", imagePreload: true},
-        {type: "control", icon: "radio-button-" + (stg.so == "seeders" ? "on" : "off"), label: t[4], action: u + "so=seeders", layout: "2,1,3,1"},
-        {type: "control", icon: "radio-button-" + (stg.so == "size" ? "on" : "off"), label: t[5], action: u + "so=size", layout: "5,1,3,1"},
-        {type: "control", icon: "radio-button-" + (stg.su == "date" ? "on" : "off"), label: t[6], action: u + "so=date", layout: "8,1,3,1"},
-        {type: "control", icon: "check-box" + (stg.fs ? "" : "-outline-blank"), label: t[7], action: u + "fs=" + string(!stg.fs), layout: "11,1,3,1"}
+        {type: "button", icon: "settings", iconSize: "small", layout: "14,0,2,1", action: "panel:" + srv.base_url + "settings.tengo"}
     ]}
 }))

@@ -1,0 +1,28 @@
+srv := import("server")
+jsn := import("json")
+stg := srv.memory()
+stg = is_array(stg) && len(stg) == 2 ? stg : ["seeders", false]
+if srv.method == "POST" {
+    if b := jsn.decode(srv.read()); is_map(b) {
+        if is_string(b.data) {
+            stg[0] = b.data
+        } else {
+            stg[1] = b.data ? true : false
+        }
+    }
+    srv.memory(stg)
+    srv.write(jsn.encode({response: {status: 200, data: {action: "reload:panel"}}}))
+} else {
+    srv.write(jsn.encode({
+        type: "list", headline: "Параметры поиска", extension: "torlook", reuse: false, cache: false, restore: false,
+        template: {type: "control", layout: "0,0,8,1", action: "execute:service:" + srv.base_url + "settings.tengo", enumerate: false},
+        items: [
+            {icon: "radio-button-" + (stg[0] == "seeders" ? "on" : "off"), label: "сортировать по сидам", data: "seeders"},
+            {icon: "radio-button-" + (stg[0] == "size" ? "on" : "off"), label: "сортировать по размеру", data: "size"},
+            {icon: "radio-button-" + (stg[0] == "date" ? "on" : "off"), label: "сортировать по дате", data: "date"},
+            {icon: "check-box" + (stg[1] ? "" : "-outline-blank"), label: "форсированный поиск", data: !stg[1]},
+            {type: "space"},
+            {type: "button", label: "Обновить результаты поиска", action: "[back|reload:content]", offset: "2,0,-4,0"}
+        ]
+    }))
+}
