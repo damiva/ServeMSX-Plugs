@@ -19,4 +19,4 @@ b = txt.replace(txt.replace(txt.replace(b[3], "{v3}", b[2].text, 1), "{v2}", b[1
 b = "http://" + srv.host + "/proxy.m3u8?header=Referer%3A" + srv.encode_uri(url+"/") + "&header=Origin%3A" + srv.encode_uri(url) + "&link=" + srv.encode_uri(b)
 //r := srv.request(b, {header: {Referer: url, Origin: txt.trim_suffix(url, "/")}})
 //panic(is_error(r) ? r : r.status == 200 ? undefined : r.status)
-srv.write("{\"response\":{\"status\":200,\"data\":{\"url\":\"", txt.trim_prefix(srv.settings.player(b), "video:"), "\"}}}")
+srv.write("{\"response\":{\"status\":200,\"data\":{\"url\":\"", srv.settings.player(b), "\"}}}")
