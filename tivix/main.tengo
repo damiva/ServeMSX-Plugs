@@ -45,13 +45,13 @@ if fav {
 } else { r = [] }
 
 // msx answer:
-props := srv.player(id, true)
+props := srv.settings.player(true)
 props["trigger:load"] = "execute:service:fetch:" + srv.base_url + "programme.tengo?cid={context:id}"
 props["control:type"] = "extended"
 props["progress:type"] = "time:hh:mm"
 props["label:extension"] = " {ico:msx-white:access-time} {now:time:hh:mm}"
 props["tizen:display:mode"] = "PLAYER_DISPLAY_MODE_FULL_SCREEN"
-opt := (fav ? "Убрать из" : "Добавить в") + " избранные"
+opt := fav ? "Убрать из избранных" : "Добавить в избранные"
 r = jsn.encode({
     type: "list", headline: "Tivix",
     compress: true, items: r,
@@ -64,13 +64,15 @@ r = jsn.encode({
         imageWidth: 1, imageFiller: "smart", 
         progress: -1, progressColor: "msx-white", titleHeader: "", titleFooter: "",
         live: {type: "setup", action: "execute:service:fetch:" + srv.base_url + "programme.tengo?cid={context:id}&now=true"},
-        properties: props,
-        options: {
-            headline: "{context:headline} Меню", 
-            caption: "Меню:{tb}{ico:msx-yellow:stop} " + opt,
-            template: {enumerate: false, type: "control", layout: "0,0,8,1"},
-            items: [{key: "yellow", icon: "msx-yellow:stop", label: opt, action: "execute:fetch:" + srv.base_url + "set.tengo?cid={context:id}" + (fav ? "" : "&ttl={context:headline}&img={context:image}")}]
-        }
+        properties: props
+    }, options: {
+        headline: "{dic:caption:options|options}:", 
+        caption: "{dic:caption:options|options}:{tb}{ico:msx-yellow:stop} {dic:Up|Up}",
+        template: {type: "control", layout: "0,0,8,1"}, 
+        items:[
+            {key: "yellow", icon: "msx-yellow:stop", label: "{dic:Up|Up}", action: "focus:index:0"},
+            {type: "space"}, {icon: "menu", label: "{dic:caption:menu|Menu}", action: "menu"}
+        ]
     }
 })
 panic(is_error(r) ? "Encoding playlist error: " + string(r) : undefined)

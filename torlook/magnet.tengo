@@ -12,4 +12,7 @@ u = srv.request(u, {header: {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) Appl
 panic(is_error(u) ? u : u.status == 200 ? undefined : u.status)
 u = import("text").re_find("(?s)\"<a.+?href='(.+?)'", u.body, 1)[0][1].text
 
-srv.write("{\"response\":{\"status\":200,\"data\":{\"action\":\"content:http://" + srv.host + "/msx/torr?link=" + srv.encode_uri(u) + "\"}}}")
+t := srv.read("ttl")
+t = t ? ("&ttl=" + srv.encode_uri(t)) : ""
+
+srv.write("{\"response\":{\"status\":200,\"data\":{\"action\":\"content:http://" + srv.host + "/msx/torr?id={ID}&link=" + srv.encode_uri(u) + t + "\"}}}")
