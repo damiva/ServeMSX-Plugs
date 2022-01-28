@@ -1,14 +1,18 @@
-s := import("server")
-j := import("json")
-a := "reload:content"
-if r := s.read("cat"); is_string(r) {
-    s.memory(r)
-    a = "[back|reload:content]" 
-} else if c := s.read("cid"); c {
+srv := import("server")
+jsn := import("json")
+stg := import("settings")
+rtn := {response: {status: 200, data: {action: "reload:content"}}}
+if r := srv.read("str"); r {
+    stg.set(int(r, 0))
+    rtn.response.data.action = "[back|reload:content]"
+} else if r = srv.read("cat"); is_string(r) {
+    stg.set(r)
+    rtn.response.data.action = "[back|reload:content]"
+} else if c := srv.read("cid"); c {
     ch := false
-    if r = s.file("favs.json"); r {
+    if r = srv.file(stg.fav); r {
         panic(is_error(r) ? r : undefined)
-        r = j.decode(r)
+        r = jsn.decode(r)
     }
     r = is_array(r) ? r : []
     l := len(r)
@@ -19,15 +23,20 @@ if r := s.read("cat"); is_string(r) {
             ch = true
         }
     }
-    if t := s.read("ttl"); t {
-        r = append(r, {id: c, headline: t, image: s.read("img")})
+    if t := srv.read("ttl"); t {
+        r = append(r, {id: c, headline: t, image: srv.read("img")})
         ch = true
-        a = "success:" + t + " добавлен в {col:msx-yellow}избранные"
+        rtn.response.data.action = "success:" + t + " добавлен в {col:msx-yellow}избранные"
     }
     if ch {
-        r = j.encode(r)
+        r = jsn.encode(r)
         panic(is_error(r) ? r : undefined)
-        s.file("favs.json", r)
+        srv.file(stg.fav, r)
+    }
+} else {
+    rtn = {type: "list", headline: "Видео:", extension: "Tivix", template: {enumerate: false, type: "button", layout: "0,0,8,1"}, items: []}
+    for i, n in stg.hls {
+        rtn.items = append(rtn.items, {label: n, action: "execute:fetch:" + srv.base_url + "set.tengo?id={ID}&str=" + string(i)})
     }
 }
-s.write("{\"response\":{\"status\":200,\"data\":{\"action\":\"" + a + "\"}}}")
+srv.write(jsn.encode(rtn))

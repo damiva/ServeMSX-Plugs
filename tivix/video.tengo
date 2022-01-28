@@ -2,9 +2,9 @@ srv := import("server")
 txt := import("text")
 cid := srv.read("cid")
 panic(cid ? undefined : 400)
-url := "http://tv.tivix.co"
+url := "http://tv.tivix.co/"
 
-b := srv.request(url + "/" + cid + ".html")
+b := srv.request(url + cid + ".html")
 panic(is_error(b) ? b : b.status != 200 ? b.status : undefined)
 
 b = txt.re_find("(?s)firstIpProtect.+?'(.+?)'.+?secondIpProtect.+?'(.+?)'.+?portProtect.+?'(.+?)'.+?new Playerjs.+?file.*?:.*?\"(.+?)\"", b.body, 1)[0][1:]
@@ -16,7 +16,14 @@ for  i := txt.last_index(b[3], "//"); i > -1; i = txt.last_index(b[3], "//"){
 b[3] = import("base64").decode(b[3])
 
 b = txt.replace(txt.replace(txt.replace(b[3], "{v3}", b[2].text, 1), "{v2}", b[1].text, 1), "{v1}", b[0].text, 1)
-b = "http://" + srv.host + "/proxy.m3u8?header=Referer%3A" + srv.encode_uri(url+"/") + "&header=Origin%3A" + srv.encode_uri(url) + "&link=" + srv.encode_uri(b)
-//r := srv.request(b, {header: {Referer: url, Origin: txt.trim_suffix(url, "/")}})
-//panic(is_error(r) ? r : r.status == 200 ? undefined : r.status)
+
+if s := int(srv.read("str"), 0); s == 2 {
+    b = srv.settings.ffmpeg(b, ["-referer", url], ["-c", "copy", "-f", "mpegts"])
+    panic(b == "" ? "ffmpeg is not set" : undefined)
+} else if s == 1 {
+    b = "http://" + srv.host + "/proxy.m3u8?header=Referer%3A" + srv.encode_uri(url) + "&link=" + srv.encode_uri(b)
+} else {
+    r := srv.request(b, {header: {Referer: url}})
+    panic(is_error(r) ? r : r.status == 200 ? undefined : r.status)
+}
 srv.write("{\"response\":{\"status\":200,\"data\":{\"url\":\"", srv.settings.player(b), "\"}}}")

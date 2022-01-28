@@ -2,22 +2,21 @@ url := "http://tv.tivix.co/"
 srv := import("server")
 txt := import("text")
 jsn := import("json")
-cat := srv.memory() || ""
+stg := import("settings")
+cat := stg.cat
 fav := cat == "*"
 cat = cat == "*" ? "" : cat
-id := srv.read("id")
-id = !id || id == "" ? "*" : id
-vid := "video:resolve:" + srv.base_url + "video.tengo?id=" + id + "&cid="
+vid := "video:resolve:" + srv.base_url + "video.tengo?str=" + string(stg.str) + "&cid="
 
 // get the page:
 r := srv.request(url + cat)
 panic(is_error(r) ? r : r.status != 200 ? r.status : undefined)
 
 // parse categories:
-c := [{label: "Избранные", action: "execute:fetch:" + srv.base_url + "set.tengo?cat=*", enable: !fav}]
+c := [{label: "Избранные", action: "execute:fetch:" + srv.base_url + "set.tengo?id={ID}&cat=*", enable: !fav}]
 for m in txt.re_find("(?s)class=\"menuuuuuu\">(.+?)</div>", r.body, 3) {
     for i in txt.re_find("(?s).+?href=\"/(.*?)\"(.+?)>(.+?)<", m[1].text, -1) {
-        cc := {label: i[3].text, action: "execute:fetch:" + srv.base_url + "set.tengo?cat="+ i[1].text}
+        cc := {label: i[3].text, action: "execute:fetch:" + srv.base_url + "set.tengo?id={ID}&cat="+ i[1].text}
         if !fav && len(i[2].text) > 3 {
             cc.enable = false
             cat = (i[1].text == "" ? "" : "{col:msx-white}") + i[3].text
@@ -56,9 +55,15 @@ r = jsn.encode({
     type: "list", headline: "Tivix",
     compress: true, items: r,
     extension: "{ico:filter-list} " + cat + "{tb}{ico:msx-white-soft:access-time} {txt:msx-white:now:time:hh:mm}",
-    header: {items: [{type: "control", icon:"filter-list", label: "Категория:", extensionLabel: cat, layout: "5,0,6,1", action: "panel:data", data: {
-        type: "list", items: c, headline: "Категории", template: {type: "button", layout: "0,0,4,1"}
-    }}]},
+    header: {items: [
+        {
+            type: "control", icon: "filter-list", label: "Категория:", extensionLabel: cat, layout: "2,0,6,1", action: "panel:data", 
+            data: {type: "list", items: c, headline: "Категории", template: {type: "button", layout: "0,0,4,1"}}
+        },{
+            type: "control", icon: "stream", label: "Видео:", extensionLabel: stg.hls[stg.str], layout: "8,0,6,1",
+            action: "panel:" + srv.base_url + "set.tengo?id={ID}"
+        }
+    ]},
     template: {
         layout: "0,0,8,2", truncation: "titleHeader|titleFooter",
         imageWidth: 1, imageFiller: "smart", 
@@ -67,10 +72,11 @@ r = jsn.encode({
         properties: props
     }, options: {
         headline: "{dic:caption:options|options}:", 
-        caption: "{dic:caption:options|options}:{tb}{ico:msx-yellow:stop} {dic:Up|Up}",
+        caption: "{dic:caption:options|options}:{tb}{ico:msx-green:stop} " + opt + "{tb}{ico:msx-yellow:stop} {dic:Up|Up}",
         template: {type: "control", layout: "0,0,8,1"}, 
         items:[
-            {key: "yellow", icon: "msx-yellow:stop", label: "{dic:Up|Up}", action: "focus:index:0"},
+            {key: "green", icon: "msx-green:stop", label: opt, action: "execute:fetch:" + srv.base_url + "set.teng?cid={context:id}" + (fav ? "" : "&ttl={context:headline}&img={context:image}")},
+            {key: "yellow", icon: "msx-yellow:stop", label: "{dic:Up|Up}", action: "[cleanup|focus:index:0]"},
             {type: "space"}, {icon: "menu", label: "{dic:caption:menu|Menu}", action: "menu"}
         ]
     }
