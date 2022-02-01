@@ -1,5 +1,0 @@
-{
-    "Label":"Tivix", 
-    "Icon": "live-tv", 
-    "URL":  "{BASE_URL}?id={ID}"
-}
