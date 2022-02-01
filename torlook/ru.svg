@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<svg enable-background="new 0 0 512.001 512.001" version="1.1" viewBox="0 0 512 512" xml:space="preserve" xmlns="http://www.w3.org/2000/svg">
-<path d="m512 200.09h-512v-102.99c0-4.875 3.953-8.828 8.828-8.828h494.34c4.875 0 8.828 3.953 8.828 8.828l-1e-3 102.99z" fill="#F5F5F5"/>
-<path d="m503.17 423.72h-494.34c-4.875 0-8.828-3.953-8.828-8.828v-102.99h512v102.99c0 4.876-3.953 8.828-8.828 8.828z" fill="#FF4B55"/>
-<rect y="200.09" width="512" height="111.81" fill="#41479B"/>
-</svg>
