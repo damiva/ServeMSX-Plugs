@@ -1,0 +1,11 @@
+srv := import("server")
+jsn := import("json")
+rtn := {response: {status: 200, data: {action: "[]"}}}
+if srv.method == "POST" {
+    if l := jsn.decode(srv.read()); !is_error(l) && is_map(l) && is_map(l.info) && is_map(l.info.dictionary) && is_string(l.info.dictionary.name) {
+        if l = l.info.dictionary.name[:3]; l == "Rus" || l == "Ukr" {
+            rtn.response.data = {action: "update:content:search", data: {label: "Поиск торрентов"}}
+        }
+    }
+}
+srv.write(jsn.encode(rtn))

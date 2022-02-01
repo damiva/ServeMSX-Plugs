@@ -1,0 +1,39 @@
+srv := import("server")
+txt := import("text")
+org := srv.memory()
+org = is_array(org) && len(org) == 4 ? org[3] : false
+its := []
+act := "content:" + srv.base_url + "find.tengo?find="
+
+r := srv.request("https://torlook.info/movietop", {header: {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36"}})
+panic(is_error(r) ? r : r.status != 200 ? r.status : undefined)
+
+if r = txt.re_find("(?s)webResult.+?item.+?<p>(.+?)</p>.+?torstat.+?<span.+?>(.+?)<", r.body, -1); is_array(r) {
+    for i in r {
+        b := i[2].text
+        i = txt.re_find("href=\"/(.+?)\">(.+?)<", i[1].text, 2)
+        i = i[len(i) > 1 && org ? 1 : 0]
+        its = append(its, {label: i[2].text, extensionLabel: b, data: srv.decode_uri(i[1].text)})
+    }
+} else {
+    its = append(its, {label: "{dic:message:playlist_empty|Empty}", icon: "msx-yellow:warning", extensionIcon: "msx-white:refresh", action: "reload:content"})
+}
+
+srv.write(import("json").encode({
+    type: "list", headline: "Torlook", extension: "TOP-50 (kinopoisk)", cache: false, compress: true, items: its,
+    ready: {action: "execute:info:dictionary:" + srv.base_url + "trans.tengo"},
+    template: {type: "control", icon: "search", layout: "0,0,16,1", action: "execute:" + srv.base_url + "find.tengo"},
+    header: {items:[
+        {
+            type: "control", icon: "title", layout: "0,0,3,1", action: "execute:" + srv.base_url + "set.tengo", data: 3,
+            label: org ? "{txt:msx-white-soft:Рус} {ico:toggle-on} Origin" : "Рус {ico:toggle-off} {txt:msx-white-soft:Origin}"
+        },{
+            type: "control", icon: "search", extensionIcon: "keyboard", layout: "3,0,10,1", 
+            id: "search", label: "Torrents search", action: "execute:http://" + srv.host + "/msx/input",
+            data: {action: "[cleanup|execute:" + srv.base_url + "find.tengo]", headline: "Torlook:"}
+        },{
+            type: "button", icon: "tune", iconSize: "small", layout: "13,0,3,1", 
+            action: "execute:info:dictionary:" + srv.base_url + "set.tengo", data: undefined
+        }
+    ]}
+}))

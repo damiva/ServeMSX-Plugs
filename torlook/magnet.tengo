@@ -1,0 +1,15 @@
+srv := import("server")
+jsn := import("json")
+
+panic(srv.method != "POST" ? 400 : undefined)
+u := srv.read()
+u = jsn.decode(u)
+panic(is_error(u) ? u : undefined)
+u = u.data || ""
+panic(u == "" ? 400 : undefined)
+
+u = srv.request(u, {header: {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36"}})
+panic(is_error(u) ? u : u.status == 200 ? undefined : u.status)
+u = import("text").re_find("(?s)\"<a.+?href='(.+?)'", u.body, 1)[0][1].text
+
+srv.write("{\"response\":{\"status\":200,\"data\":{\"action\":\"content:http://" + srv.host + "/msx/torr?id={ID}&link=" + srv.encode_uri(u) + "\"}}}")

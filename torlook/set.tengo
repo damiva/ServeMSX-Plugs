@@ -1,0 +1,51 @@
+srv := import("server")
+jsn := import("json")
+stg := srv.memory()
+stg = is_array(stg) && len(stg) == 4 ? stg : ["seeders", false, false, false]
+if srv.method == "POST" {
+    b := jsn.decode(srv.read())
+    panic(is_error(b) ? b : undefined)
+    rtn := {response: {status: 200, data: {action: "reload:panel"}}}
+    if b.info { 
+        ru := b.info.dictionary && is_string(b.info.dictionary.name) ? b.info.dictionary.name[:3] : ""
+        f := srv.read("find")
+        f = f ? srv.encode_uri(f) : ""
+        rtn.response.data.action = "panel:" +srv.base_url + "set.tengo?find=" + f + (ru == "Rus" || ru == "Ukr" ? "&ru" : "")
+    } else if is_string(b.data) {
+        stg[0] = b.data
+        srv.memory(stg)
+    } else if b = int(b.data, 0); b > 0 && b < len(stg) {
+        stg[b] = !stg[b]
+        srv.memory(stg)
+        if b == 3 { rtn.response.data.action = "reload:content" }
+    }
+    srv.write(jsn.encode(rtn))
+} else {
+    ru := is_string(srv.read("ru"))
+    f := srv.read("find")
+    srv.write(jsn.encode({
+        type: "list", headline: ru ? "Параметры поиска:" : "Search properties:", extension: "Torlook", 
+        template: {enumerate: false, type: "control", layout: "0,0,8,1", action: "execute:" + srv.base_url + "set.tengo"},
+        items: [
+            {
+                icon: "remove-red-eye", label: ru ? "представление результатов:" : "results view:", data: 2,
+                extensionLabel: "{ico:" + (stg[2] ? "" : "msx-white:") + "splitscreen} {ico:msx-white:toggle-o" + (stg[2] ? "n" : "ff") + "} {ico:" + (stg[2] ? "msx-white:" : "") + "grid-view}"
+            },{
+                icon: "sort", label: ru ? "сортировать по сидам" : "order by seeders", data: "seeders", 
+                extensionIcon: stg[0] == "seeders" ? "msx-white:radio-button-on" : "radio-button-off"
+            },{
+                icon: "sort", label: ru ? "сортировать по дате" : "order by date", data: "date", 
+                extensionIcon: stg[0] == "date" ? "msx-white:radio-button-on" : "radio-button-off"
+            },{
+                icon: "sort", label: ru ? "сортировать по размеру" : "order by size", data: "size", 
+                extensionIcon: stg[0] == "size" ? "msx-white:radio-button-on" : "radio-button-off"
+            },{
+                icon: "manage-search", label: ru ? "форсированный поиск" : "forced search", data: 1,
+                extensionIcon: stg[1] ? "msx-white:check-box" : "check-box-outline-blank"
+            },{
+                type: "button", label: "{dic:label:apply|Apply}", data: f,
+                action: "[cleanup|close:FIND|execute:" + srv.base_url + "find.tengo]", enable: f ? true : false
+            }
+        ]
+    }))
+}
