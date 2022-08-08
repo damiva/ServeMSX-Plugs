@@ -2,6 +2,9 @@
   {
     "image": "https://img.crx4chrome.com/3a/61/ec/agencljbacpfnclcbanachomfbeoilaa-logo.png",
     "label": "Torrenther",
-    "src": ["https://raw.githubusercontent.com/damiva/ServeMSX-Plugs/main/torrenther.js"]
+    "src": [
+      "https://raw.githubusercontent.com/damiva/ServeMSX-Plugs/main/torrenther.js",
+      "https://raw.githubusercontent.com/damiva/ServeMSX-Plugs/main/torrenther.js"
+    ]
   }
 ]
