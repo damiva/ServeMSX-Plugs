@@ -1,0 +1,8 @@
+[
+  {
+    "id": "torrenther", 
+    "label": "Torrenther", 
+    "image": "https://img.crx4chrome.com/3a/61/ec/agencljbacpfnclcbanachomfbeoilaa-icon.png",
+    src: [""],
+    torrents: true}
+]
